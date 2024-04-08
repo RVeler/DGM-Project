@@ -1,7 +1,6 @@
 from utils.utils import *
 import glob
 from params import Params
-from training import train
 from utils.plotters import *
 import time
 from datetime import datetime
@@ -11,7 +10,7 @@ import random
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu_num', help='GPU id to use', default=0, type=int)
+    parser.add_argument('--gpu_num', help='GPU id to use', default=1, type=int)
     parser.add_argument('--input_file', help='Path to input file', default='trump_farewell_address_8.wav')
     parser.add_argument('--start_time', help='Skip beginning, in [sec]', default=0, type=float)
     parser.add_argument('--max_length', help='Max length of signal, in [sec]', default=25, type=float)
@@ -21,11 +20,12 @@ if __name__ == '__main__':
     parser.add_argument('--num_epochs', help='Number of training epochs in each scale', default=2000, type=int)
     parser.add_argument('--num_layers', help='Number of layers in each model', default=8, type=int)
     parser.add_argument('--speech', default=False, action='store_true')
-    parser.add_argument('--run_mode', default='normal', type=str, choices=['normal', 'inpainting', 'denoising'])
+    parser.add_argument('--run_mode', default='denoising', type=str, choices=['normal', 'inpainting', 'denoising'])
     parser.add_argument('--inpainting_indices', default=[0, 1], nargs='+', type=int,
                         help='Start and end indices of hole (for inpainting)')
     parser.add_argument('--plot_losses', help='Save and plot GAN losses', default=False, action='store_true')
     parser.add_argument('--plot_signals', help='Plot signals', default=False, action='store_true')
+    parser.add_argument('--train_mode', default='perceptual_loss', type=str,choices=['rec_loss', 'perceptual_loss'] )
 
     params_override = parser.parse_args()
 
@@ -54,6 +54,7 @@ if params.fs_list[-1] != params.Fs:
     params.fs_list.append(params.Fs)
 params.scales = [params.Fs / f for f in params.fs_list]
 
+print('Fs scales are: %s' % params.scales)
 print('Working on file: %s' % params.input_file)
 
 # Create a random hole for inpainting
@@ -126,6 +127,16 @@ if params.run_mode == 'inpainting':
         params.masks.append(torch.Tensor(total_mask).bool().to(params.device))
 
 print('Running on ' + str(params.device))
+
+if params.train_mode == 'perceptual_loss':
+    from training_perceptual import train
+    print('Training via perceptual loss')
+elif params.train_mode == 'rec_loss':
+    from training import train
+    print('Training via recostruction loss')
+else:
+    raise Exception('Provide train mode of rec_loss or perceptual_loss!')
+    
 
 # Start training
 output_signals, loss_vectors, generators_list, noise_amp_list, energy_list, reconstruction_noise_list = train(
