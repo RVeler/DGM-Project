@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--plot_losses', help='Save and plot GAN losses', default=False, action='store_true')
     parser.add_argument('--plot_signals', help='Plot signals', default=False, action='store_true')
     parser.add_argument('--train_mode', default='perceptual_loss', type=str,choices=['rec_loss', 'perceptual_loss'] )
+    parser.add_argument('--percep_type', default='Encodec', type=str,choices=['Encodec', 'CLAP'] )
 
     params_override = parser.parse_args()
 
@@ -131,6 +132,7 @@ print('Running on ' + str(params.device))
 if params.train_mode == 'perceptual_loss':
     from training_perceptual import train
     print('Training via perceptual loss')
+    print('Perceptual type is: ', params.percep_type)
 elif params.train_mode == 'rec_loss':
     from training import train
     print('Training via recostruction loss')
