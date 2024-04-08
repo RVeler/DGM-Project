@@ -124,7 +124,7 @@ if params.run_mode == 'inpainting':
             cur_hole_end_idx = int(hole_idx[1] / scale)
             current_mask = np.logical_or(idcs < cur_hole_start_idx, idcs >= cur_hole_end_idx)
             total_mask = np.logical_and(current_mask, total_mask)
-        params.masks.append(torch.Tensor(total_mask).bool().to(params.device))
+        params.masks.append(torch.Tensor(total_mask).bool())
 
 print('Running on ' + str(params.device))
 
