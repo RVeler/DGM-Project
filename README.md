@@ -1,19 +1,11 @@
-# Catch-A-Waveform -- Trainig with perceptual loss
+# Catch-A-Waveform -- Training with perceptual loss
 #### Deep Generative Model Course Project 
 By Rina Veler and Shira Schiber 
 <br>Based on the amazing work of Gal Grehsler et al.
 
 [The Original Project Website](https://galgreshler.github.io/Catch-A-Waveform/) | [Original Paper](https://arxiv.org/pdf/2106.06426.pdf)
 
-### Official pytorch implementation of the paper: "Catch-A-Waveform: Learning to Generate Audio from a Single Short Example" (NeurIPS 2021)
-
-## Generate audio from a single audio input
-
-![](figures/CAW.png)
-
-## Catch-A-Waveform's Applications
-
-![](figures/Applications.png)
+### Official pytorch implementation of the paper: "Catch-A-Waveform: Learning to Generate Audio from a Single Short Example" (NeurIPS 2021) --_with perceptual loss training_--
 
 ## Install dependencies
 
@@ -23,6 +15,20 @@ python -m pip install -r requirements.txt
 
 ## Training
 
+In order to implement reconstruction loss and not perceptual loss, add the following command:
+```
+--train_mode rec_loss
+```
+The default is 'perceptual_loss'. <br> 
+
+In order to choose between CLAP model or Encodec model, use the command:
+```
+--percep_type CLAP   or   --percep_type Encodec 
+```
+We edit the 'main_train.py' file, and add the files 'training_perceptual.py' and 'perceptual_utils.py'. <br>
+Examples of our training results can found in the directory 'Examples'.<br>
+
+The rest of this document is the same as the original README.md.
 ### Unconditional Generation
 
 To train for unconditional inference or bandwidth extension, just place an audio signal inside the `inputs` folder
@@ -177,14 +183,8 @@ python train_main.py --input_file JosephJoachim_BachAdagio_1904 --run_mode denoi
 
 Here we set the `init_sample_rate` to be 10KHz (default is 16Khz) since the old recording has limited bandwidth.
 
-## Pretrained Models
-Instead of running the examples yourself, you can download the pretrained generators and just perform inference. After downloaing the folders, put them inside `outputs` folder and run inference.
-
-The models can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1JN2QVmuKU2rCe1nAJ7jw6DsXb4F6AKpH?usp=sharing).
 
 ## Citation
-
-If you use this code in your research, please cite our paper:
 
 ```
 @article{greshler2021catch,
@@ -195,21 +195,3 @@ If you use this code in your research, please cite our paper:
   year={2021}
 }
 ```
-
-### Credits
-
-The examples signals are taken from the following websites:
-
-- Saxophone - [Medley-solos-DB](https://zenodo.org/record/1344103#.YRt7oxJRVH4).
-- Speech - [VCTK Corpus](https://datashare.ed.ac.uk/handle/10283/3443).
-- Trump speech - [Miller Center](https://millercenter.org/the-presidency/presidential-speeches), presidential speech
-  database.
-- Rock song - [FMA](https://github.com/mdeff/fma) database.
-- Joseph Joachim's recording - [Josheph Joachim](https://josephjoachim.com/2013/12/11/joachim-bach-adagio-in-g-minor-1904/) website.
-
-Some code was adapted from:
-
-- [SinGAN](https://github.com/tamarott/SinGAN).
-- Resampling - [ResizeRight](https://github.com/assafshocher/ResizeRight).
-- MSS loss function - [Jukexbox](https://github.com/openai/jukebox/).
-- Thanks [Federico Miotello](https://github.com/fmiotello) for the multiple holes inpainting implementation.
