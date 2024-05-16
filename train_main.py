@@ -10,7 +10,7 @@ import random
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu_num', help='GPU id to use', default=1, type=int)
+    parser.add_argument('--gpu_num', help='GPU id to use', default=0, type=int)
     parser.add_argument('--input_file', help='Path to input file', default='trump_farewell_address_8.wav')
     parser.add_argument('--start_time', help='Skip beginning, in [sec]', default=0, type=float)
     parser.add_argument('--max_length', help='Max length of signal, in [sec]', default=25, type=float)
@@ -133,6 +133,8 @@ if params.train_mode == 'perceptual_loss':
     from training_perceptual import train
     print('Training via perceptual loss')
     print('Perceptual type is: ', params.percep_type)
+    if params.percep_type == 'Encodec':
+        torch.backends.cudnn.enabled=False
 elif params.train_mode == 'rec_loss':
     from training import train
     print('Training via recostruction loss')
