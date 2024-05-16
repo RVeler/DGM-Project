@@ -10,13 +10,13 @@ import librosa #myimpotrs
 from transformers import AutoFeatureExtractor, ClapModel, AutoProcessor,  EncodecModel #myimpotrs
 import torchaudio
 from perceptual_utils import CustomizedClapFeatureExtractor, CustomizedEncodecFeatureExtractor
-torch.backends.cudnn.enabled=False
+
 
 model1 = ClapModel.from_pretrained("laion/clap-htsat-unfused")#myaddition
 model1.eval()
 for param in model1.parameters():
   param.requires_grad = False
-#feature_extractor = AutoFeatureExtractor.from_pretrained("laion/clap-htsat-unfused")#myaddition
+feature_extractor = AutoFeatureExtractor.from_pretrained("laion/clap-htsat-unfused")#myaddition
 feature_extractor_CLAP = CustomizedClapFeatureExtractor(
     feature_size=64,
     sampling_rate=48000,
@@ -97,10 +97,12 @@ def compute_perceptual_loss(percep_type,signal1,signal2, cur_fs):
         resample_audio1 = transform(signal1.to('cpu'))
         resample_audio2 = transform(signal2.to('cpu'))
         inputs = feature_extractor_CLAP(resample_audio1.squeeze(), return_tensors="pt", sampling_rate=48_000)
+        #inputs = feature_extractor(resample_audio1.squeeze().detach(), return_tensors="pt", sampling_rate=48_000)
         audio_features1 = model1.get_audio_features(**inputs)
         inputs = feature_extractor_CLAP(resample_audio2.squeeze(), return_tensors="pt", sampling_rate=48_000)
         audio_features2 = model1.get_audio_features(**inputs)
     elif percep_type == 'Encodec':
+        torch.backends.cudnn.enabled=False
         transform = torchaudio.transforms.Resample(orig_freq = cur_fs, new_freq = 24_000)
         resample_audio1 = transform(signal1.to('cpu'))
         resample_audio2 = transform(signal2.to('cpu'))
