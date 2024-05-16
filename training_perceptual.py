@@ -9,7 +9,8 @@ import time
 import librosa #myimpotrs
 from transformers import AutoFeatureExtractor, ClapModel, AutoProcessor,  EncodecModel #myimpotrs
 import torchaudio
-from perceptual_utils import CustomizedClapFeatureExtractor
+from perceptual_utils import CustomizedClapFeatureExtractor, CustomizedEncodecFeatureExtractor
+torch.backends.cudnn.enabled=False
 
 model1 = ClapModel.from_pretrained("laion/clap-htsat-unfused")#myaddition
 model1.eval()
@@ -89,17 +90,27 @@ def train(params, signals_list):
 
     return output_signals, loss_vectors, generators_list, noise_amp_list, energy_list, reconstruction_noise_list
 
-def compute_perceptual_loss(signal1,signal2, cur_fs):
-    transform = torchaudio.transforms.Resample(orig_freq = cur_fs, new_freq = 48_000)
-    resample_audio1 = transform(signal1.to('cpu'))
-    inputs = feature_extractor_ours(resample_audio1.squeeze(), return_tensors="pt", sampling_rate=48_000)
-    audio_features1 = model.get_audio_features(**inputs)
-
-    transform = torchaudio.transforms.Resample(orig_freq = cur_fs, new_freq = 48_000)
-    resample_audio2 = transform(signal2.to('cpu'))
-    inputs = feature_extractor_ours(resample_audio2.squeeze(), return_tensors="pt", sampling_rate=48_000)
-    audio_features2 = model.get_audio_features(**inputs)
-
+def compute_perceptual_loss(percep_type,signal1,signal2, cur_fs):
+    
+    if  percep_type == 'CLAP':
+        transform = torchaudio.transforms.Resample(orig_freq = cur_fs, new_freq = 48_000)
+        resample_audio1 = transform(signal1.to('cpu'))
+        resample_audio2 = transform(signal2.to('cpu'))
+        inputs = feature_extractor_CLAP(resample_audio1.squeeze(), return_tensors="pt", sampling_rate=48_000)
+        audio_features1 = model1.get_audio_features(**inputs)
+        inputs = feature_extractor_CLAP(resample_audio2.squeeze(), return_tensors="pt", sampling_rate=48_000)
+        audio_features2 = model1.get_audio_features(**inputs)
+    elif percep_type == 'Encodec':
+        transform = torchaudio.transforms.Resample(orig_freq = cur_fs, new_freq = 24_000)
+        resample_audio1 = transform(signal1.to('cpu'))
+        resample_audio2 = transform(signal2.to('cpu'))
+        inputs = feature_extractor_Encodec(resample_audio1.squeeze(), return_tensors="pt", sampling_rate=24_000)
+        audio_features1 = model2.encoder(inputs.input_values)
+        inputs = feature_extractor_Encodec(resample_audio2.squeeze(), return_tensors="pt", sampling_rate=24_000)
+        audio_features2 = model2.encoder(inputs.input_values)
+    else:
+        raise Exception('Provide perceptual type loss!')    
+    
     return torch.mean((audio_features1 - audio_features2) ** 2)
 
 
@@ -277,7 +288,6 @@ def train_single_scale(params, signals_list, fs_list, generators_list, noise_amp
         #############################################
         # Update G by maximizing D(G(noise_signal)) #
         #############################################
-        #netG.train()
         netG.zero_grad()
         output = netD(fake_signal)
         errG = -output.mean()
@@ -294,13 +304,13 @@ def train_single_scale(params, signals_list, fs_list, generators_list, noise_amp
                                         prev_reconstructed_signal)
         if params.alpha1 > 0:
             if params.run_mode == 'inpainting':
-                rec_loss_t = params.alpha1 *compute_perceptual_loss(real_signal[:, :, current_mask],reconstructed_signal[:, :, current_mask],params.current_fs)
+                rec_loss_t = params.alpha1 *compute_perceptual_loss(params.percep_type, real_signal[:, :, current_mask],reconstructed_signal[:, :, current_mask],params.current_fs)
             else:
-                rec_loss_t = params.alpha1 * compute_perceptual_loss(real_signal,reconstructed_signal,params.current_fs)
+                rec_loss_t = params.alpha1 * compute_perceptual_loss(params.percep_type, real_signal,reconstructed_signal,params.current_fs)
         else:
             rec_loss_t = 0
         if params.alpha2 > 0:
-            rec_loss_f = params.alpha2 * compute_perceptual_loss(real_signal,reconstructed_signal,params.current_fs)
+            rec_loss_f = params.alpha2 * compute_perceptual_loss(params.percep_type, real_signal,reconstructed_signal,params.current_fs)
         else:
             rec_loss_f = 0
         rec_loss = rec_loss_t + rec_loss_f
